@@ -1,34 +1,37 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
+const axios = require("axios");
 const cors = require("cors");
-const fetch = require("node-fetch"); // If you're using node-fetch to proxy requests
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// Simple proxy route to avoid CORS issue
-app.get("/api/proxy", async (req, res) => {
-  const targetUrl = req.query.url;
+const PORT = process.env.PORT || 5000;
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 
-  if (!targetUrl) {
-    return res.status(400).json({ error: "URL required" });
+// Main Weather Route
+app.get("/api/weather", async (req, res) => {
+  const { city, units = "metric" } = req.query;
+
+  if (!city) {
+    return res.status(400).json({ error: "City required" });
   }
 
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+    city
+  )}&appid=${OPENWEATHER_API_KEY}&units=${units}`;
+
   try {
-    const response = await fetch(targetUrl);
-    const data = await response.json();
+    const response = await axios.get(url);
+    const data = response.data;
     res.json(data);
-  } catch (error) {
-    console.error("Proxy Error:", error.message);
-    res.status(500).json({ error: "Failed to fetch data" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Failed to fetch weather data" });
   }
 });
 
-// Server start
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
